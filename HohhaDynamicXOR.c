@@ -1485,8 +1485,16 @@ int64_t EncryptBMPFile(const char *InFileName, const char *OutFileName, uint8_t 
   return CheckSum;
 }
 
-#define SAMPLE_FILE_PATH "/home/ikizir/Downloads/panda.bmp"
-  #define SAMPLE_OUT_FILE_PATH "/home/ikizir/Downloads/panda_enc.bmp"
+/* =============== Start of visualization test code ==================*/
+
+#ifndef IMAGE_SRC
+#  define IMAGE_SRC /home/ikizir/Downloads
+#endif
+
+
+#define SAMPLE_FILE_PATH "IMAGE_SRC/panda.bmp"
+  #define SAMPLE_OUT_FILE_PATH "IMAGE_SRC/panda_enc.bmp"
+
 void TestEncryptFile(unsigned NumJumps, unsigned BodyLen)
 {
   unsigned long long int ChkSum;
@@ -1525,55 +1533,57 @@ void TestEncryptBMPFile(const char *InFileName, const char *OutFileName, unsigne
 
 void CreateVisualProofs()
 {
-  TestEncryptBMPFile("/home/ikizir/Downloads/panda.bmp", "/home/ikizir/Downloads/panda_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("/home/ikizir/Downloads/panda.bmp", "/home/ikizir/Downloads/panda_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_2J_64.bmp", 2, 64);
+  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_3J_64.bmp", 3, 64);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/panda.bmp", "/home/ikizir/Downloads/panda_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("/home/ikizir/Downloads/panda.bmp", "/home/ikizir/Downloads/panda_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_2J_128.bmp", 2, 128);
+  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_3J_128.bmp", 3, 128);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/panda.bmp", "/home/ikizir/Downloads/panda_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("/home/ikizir/Downloads/panda.bmp", "/home/ikizir/Downloads/panda_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_2J_256.bmp", 2, 256);
+  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_3J_256.bmp", 3, 256);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/Bitmap1.bmp", "/home/ikizir/Downloads/Bitmap1_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("/home/ikizir/Downloads/Bitmap1.bmp", "/home/ikizir/Downloads/Bitmap1_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_2J_64.bmp", 2, 64);
+  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_3J_64.bmp", 3, 64);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/Bitmap1.bmp", "/home/ikizir/Downloads/Bitmap1_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("/home/ikizir/Downloads/Bitmap1.bmp", "/home/ikizir/Downloads/Bitmap1_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_2J_128.bmp", 2, 128);
+  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_3J_128.bmp", 3, 128);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/Bitmap1.bmp", "/home/ikizir/Downloads/Bitmap1_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("/home/ikizir/Downloads/Bitmap1.bmp", "/home/ikizir/Downloads/Bitmap1_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_2J_256.bmp", 2, 256);
+  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_3J_256.bmp", 3, 256);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/Viking.bmp", "/home/ikizir/Downloads/Viking_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("/home/ikizir/Downloads/Viking.bmp", "/home/ikizir/Downloads/Viking_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_2J_64.bmp", 2, 64);
+  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_3J_64.bmp", 3, 64);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/Viking.bmp", "/home/ikizir/Downloads/Viking_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("/home/ikizir/Downloads/Viking.bmp", "/home/ikizir/Downloads/Viking_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_2J_128.bmp", 2, 128);
+  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_3J_128.bmp", 3, 128);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/Viking.bmp", "/home/ikizir/Downloads/Viking_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("/home/ikizir/Downloads/Viking.bmp", "/home/ikizir/Downloads/Viking_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_2J_256.bmp", 2, 256);
+  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_3J_256.bmp", 3, 256);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/B.bmp", "/home/ikizir/Downloads/B_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("/home/ikizir/Downloads/B.bmp", "/home/ikizir/Downloads/B_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_2J_64.bmp", 2, 64);
+  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_3J_64.bmp", 3, 64);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/B.bmp", "/home/ikizir/Downloads/B_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("/home/ikizir/Downloads/B.bmp", "/home/ikizir/Downloads/B_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_2J_128.bmp", 2, 128);
+  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_3J_128.bmp", 3, 128);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/B.bmp", "/home/ikizir/Downloads/B_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("/home/ikizir/Downloads/B.bmp", "/home/ikizir/Downloads/B_enc_3J_256.bmp", 3, 256);
-
-
+  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_2J_256.bmp", 2, 256);
+  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_3J_256.bmp", 3, 256);
 
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/penguen.bmp", "/home/ikizir/Downloads/penguen_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("/home/ikizir/Downloads/penguen.bmp", "/home/ikizir/Downloads/penguen_enc_3J_64.bmp", 3, 64);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/penguen.bmp", "/home/ikizir/Downloads/penguen_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("/home/ikizir/Downloads/penguen.bmp", "/home/ikizir/Downloads/penguen_enc_3J_128.bmp", 3, 128);
 
-  TestEncryptBMPFile("/home/ikizir/Downloads/penguen.bmp", "/home/ikizir/Downloads/penguen_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("/home/ikizir/Downloads/penguen.bmp", "/home/ikizir/Downloads/penguen_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_2J_64.bmp", 2, 64);
+  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_3J_64.bmp", 3, 64);
+
+  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_2J_128.bmp", 2, 128);
+  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_3J_128.bmp", 3, 128);
+
+  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_2J_256.bmp", 2, 256);
+  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_3J_256.bmp", 3, 256);
 
 }
+
+/* ================= End of visualization test code ==================*/
 
 
 int main()
