@@ -1,8 +1,10 @@
 # Makefile
 
-HohhaDynamicXOR:
-	gcc -Wall -o HohhaDynamicXOR HohhaDynamicXOR.c
+IMAGE_SRC ?= ./images
 
-clear:
+HohhaDynamicXOR:
+	gcc -Wall -Werror -D IMAGE_SRC=$(abspath $(IMAGE_SRC)) -o HohhaDynamicXOR HohhaDynamicXOR.c
+
+clean:
 	rm -f HohhaDynamicXOR.exe
-	rm -f images/*_end*.*
+	rm -f images/*_enc*.*
