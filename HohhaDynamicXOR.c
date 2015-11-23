@@ -26,6 +26,10 @@ Alternatively you can use and distribute this file under the terms of the GNU Ge
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "HohhaDynamicXOR.h"
+
+#ifndef NO_TESTS
+
 /* ---------------------------- BASE64 ENCODE/DECODE FUNCTIONS -------------------------------------
  */
 /*
@@ -296,33 +300,9 @@ char *Base64Decode(const char* input)
 /* ---------------------------- BASE64 ENCODE/DECODE FUNCTIONS ENDS HERE -------------------------------------
  */
 
+#endif // NO_TESTS
+
 /* ---------------- utility fncs */
-uint32_t GetElapsedTimeInMilliSeconds(struct timeval *StartTime)
-{
-  struct timeval Now;
-
-  gettimeofday (&Now, NULL);
-  return (Now.tv_sec - StartTime->tv_sec) * 1000 + (Now.tv_usec - StartTime->tv_usec) / 1000;
-}
-double PrintElapsedTime(struct timeval *StartTime, unsigned long long int TotalProcessedBytes)
-{
-  double TotalMBytes = ((double)TotalProcessedBytes/(1024.0*1024));
-  unsigned EInMs = GetElapsedTimeInMilliSeconds(StartTime);
-  double Average = TotalMBytes / (1.0 * EInMs) * 1000.0;
-  printf("\n\tTotal data processed: %6.2f MBytes\n\tElapsed Time: %u ms.\n\tAverage: %10.4f MBytes/secs \n",TotalMBytes, EInMs, Average);
-  return Average;
-}
-
-void IncByOne(uint8_t *Buf, uint32_t BufLen)
-{
-  unsigned t;
-  for (t=0; t<BufLen; t++)
-    Buf[t]++;
-}
-uint8_t *CreateDataBuf(Size)
-{
-  return (uint8_t *)calloc(1, Size);
-}
 
 /* -*- c++ -*- */
 /*
@@ -442,7 +422,7 @@ unsigned int digital_crc32(uint8_t *buf, size_t len)
 #define RANDOM_BUF_SIZE 8192
 uint8_t RandomBuf[RANDOM_BUF_SIZE];
 
-uint32_t RandomBufStartPos=999999999; // It must be a number greater than RANDOM_BUF_SIZE for initialization
+uint32_t RandomBufStartPos=RANDOM_BUF_SIZE+1; // It must be a number greater than RANDOM_BUF_SIZE for initialization
 
 void ReadRandomBytesFromUDEv(uint32_t ByteCount, uint8_t *Buffer)
 {
@@ -475,7 +455,9 @@ void GetRandomNumbers(uint32_t ByteCount, uint8_t *Buffer)
     return;
   }
   if (RANDOM_BUF_SIZE < RandomBufStartPos+ByteCount)
+  {
     RandomizeBuffer();
+  }
   if (ByteCount == 1)
   {
     Buffer[0] = RandomBuf[RandomBufStartPos++];
@@ -484,61 +466,17 @@ void GetRandomNumbers(uint32_t ByteCount, uint8_t *Buffer)
   memcpy(Buffer, RandomBuf + RandomBufStartPos, ByteCount);
   RandomBufStartPos += ByteCount;
 }
+
 uint8_t GetRandomUInt8(void)
 {
   if (RandomBufStartPos >= RANDOM_BUF_SIZE)
+  {
     RandomizeBuffer();
+  }
   return RandomBuf[RandomBufStartPos++];
 }
 
-// Standart C has not ROL or ROR function, but most modern cpus has instructions for circular shift operations
-// This is a quick and dirty code for standart C versions and Intel Family cpu assembler optimized versions
-
-#define GCC_INTEL_OPTIMIZED
-
-static inline int ROL32_1(int v)
-{
-  #if defined(__GNUC__)
-    #if defined(GCC_INTEL_OPTIMIZED)
-      asm ("rol %0;" :"=r"(v) /* output */ :"0"(v) /* input */ );
-      return v;
-    #else
-      return (((v) << 1) | ((v) >> 31));
-    #endif
-  #endif
-}
-static inline int ROR32_1(int v) {
-  #if defined(__GNUC__)
-    #if defined(GCC_INTEL_OPTIMIZED)
-      asm ("ror %0;" :"=r"(v) /* output */ :"0"(v) /* input */ );
-      return v;
-    #else
-      return (((v) >> 1) | ((v) << 31))
-    #endif
-  #endif
-}
-
 /* ------------------------- END UTILITY FUNCTIONS ----------------- */
-
-#define SALT_SIZE 8 //
-#define MAX_NUM_JUMPS 64
-#define FALSE (0U)
-#define TRUE (!(FALSE))
-#define VERBOSE
-
-/* Function used to determine if V is unique among the first Pos elements
- * Used by the xorGetKey function to check particle length uniqueness
- */
-#define MAX_BODY_SIZE 256 // DO NOT SET THIS LIMIT TO MORE THAN 256 BYTES! Or you must also change encryption&decryption code for key coverage
-
-#define SP_NUM_JUMPS 0
-#define SP_BODY_LEN 1
-#define SP_SALT_DATA 3
-#define SP_BODY (SP_SALT_DATA+SALT_SIZE)
-#define GetBodyLen(K) (K[SP_BODY_LEN] + 256 * K[SP_BODY_LEN+1])
-#define GetBodyPtr(K) (K + SP_BODY)
-#define GetNumJumps(K) (K[SP_NUM_JUMPS])
-#define xorComputeKeyBufLen(BodyLen) (SP_BODY+BodyLen)
 
 // Creates XOR key
 // The first byte will be equal to NumJumps
@@ -584,8 +522,6 @@ void xorAnalyzeKey(uint8_t *K)
  * when the receiver receives the packet, decrypts the new salt value with the original salt value of the key and passes that salt value to function,
  * and decrypts packet body with that salt value. This method prevents "known plaintext" attacks amongst others.
  */
-
-#define xorComputeKeyCheckSum(K) digital_crc32(K, SP_BODY + GetBodyLen(K))
 
 uint64_t xorEncrypt(uint8_t *K, uint8_t *Salt, uint32_t KeyCheckSum, size_t InOutDataLen, uint8_t *InOutBuf)
 { // Encrypts message and returns checksum of the InOutBuf BEFORE encyption
@@ -1015,6 +951,40 @@ uint64_t xorDecryptHOP4(uint8_t *K, uint8_t *Salt, uint32_t KeyCheckSum, size_t 
   }
   return Checksum;
 }
+
+#ifndef NO_BENCH
+
+// =================================== Start of Benchmark code =========
+
+uint8_t *CreateDataBuf(size_t Size)
+{
+  return (uint8_t *)calloc(1, Size);
+}
+
+uint32_t GetElapsedTimeInMilliSeconds(struct timeval *StartTime)
+{
+  struct timeval Now;
+
+  gettimeofday (&Now, NULL);
+  return (Now.tv_sec - StartTime->tv_sec) * 1000 + (Now.tv_usec - StartTime->tv_usec) / 1000;
+}
+
+double PrintElapsedTime(struct timeval *StartTime, unsigned long long int TotalProcessedBytes)
+{
+  double TotalMBytes = ((double)TotalProcessedBytes/(1024.0*1024));
+  unsigned EInMs = GetElapsedTimeInMilliSeconds(StartTime);
+  double Average = TotalMBytes / (1.0 * EInMs) * 1000.0;
+  printf("\n\tTotal data processed: %6.2f MBytes\n\tElapsed Time: %u ms.\n\tAverage: %10.4f MBytes/secs \n",TotalMBytes, EInMs, Average);
+  return Average;
+}
+
+void IncByOne(uint8_t *Buf, uint32_t BufLen)
+{
+  unsigned t;
+  for (t=0; t<BufLen; t++)
+    Buf[t]++;
+}
+
 //#define xorEncryptDecrypt xorEncryptDecryptHOP5
 /* Memcpy Benchmark1 :
  * This function
@@ -1090,14 +1060,7 @@ double Benchmark1(uint8_t NumJumps, uint32_t BodyLen, uint32_t TestSampleLength,
   free(KeyBuf);
   return Average;
 }
-static inline uint64_t BufCheckSum(uint8_t *Buf, uint64_t BufLen)
-{
-  uint64_t t, CheckSum = 0;
 
-  for (t=0; t<BufLen; t++)
-    CheckSum += Buf[t];
-  return CheckSum;
-}
 double BenchmarkHOP2(uint8_t NumJumps, uint32_t BodyLen, uint32_t TestSampleLength, uint32_t NumIterations)
 {
   uint8_t *KeyBuf = (uint8_t *)malloc(xorComputeKeyBufLen(BodyLen));
@@ -1191,8 +1154,17 @@ double BenchmarkHOP4(uint8_t NumJumps, uint32_t BodyLen, uint32_t TestSampleLeng
   return Average;
 }
 
+// ===================================== End of Benchmark code =========
+
+#endif // NO_BENCH
+
+#ifndef NO_TESTS
+
+// ==================================== Start of tests =================
+
 #define TESTSTR1 "TÜRKÇE karakter kullanınız DENEME. TÜRKÇE karakter kullanınız DENEME. uzuuuuuuun. TÜRKÇE karakter kullanınız DENEME. Çok uzun çok!222TÜRKÇE karakter kullanınız DENEME. TÜRKÇE karakter kullanınız DENEME. uzuuuuuuun. TÜRKÇE karakter kullanınız DENEME. Çok uzun çok!frfrTÜRKÇE karakter kullanınız DENEME. TÜRKÇE karakter kullanınız DENEME. uzuuuuuuun. TÜRKÇE karakter kullanınız DENEME. Çok uzun çok!"
 #define TESTSTR1_LEN strlen(TESTSTR1)
+
 void CheckOptimizedVersion(unsigned NumJumps, unsigned BodyLen)
 {
   unsigned long long int DLen, OriginalPlainTextCheckSum, CheckSumReturnedFromEncryptor, CheckSumReturnedFromDecryptor;
@@ -1338,6 +1310,7 @@ void Test1(unsigned NumJumps, unsigned BodyLen)
   }
   //exit(-1);
 }
+
 void D1()
 {
   int t;
@@ -1363,6 +1336,7 @@ char *GetBinStr(uint32_t val, char *ResBuf)
   *p = 0;
   return ResBuf;
 }
+
 void CircularShiftTest()
 {
   uint32_t t, Nn = (uint32_t)(0b10000000000000000000000000000010U);
@@ -1381,6 +1355,14 @@ void CircularShiftTest()
   }
 }
 
+// ==================================== End of tests ===================
+
+#endif // NO_TESTS
+
+#ifndef NO_VISUAL
+
+/* =============== Start of visualization test code ==================*/
+
 int64_t EncryptFile(const char *InFileName, const char *OutFileName, uint8_t *KeyBuf, uint32_t KeyCheckSum)
 {
   int32_t FDesc;
@@ -1390,7 +1372,8 @@ int64_t EncryptFile(const char *InFileName, const char *OutFileName, uint8_t *Ke
 
   if ((FDesc = open(InFileName, O_RDONLY)) == -1)
   {
-    printf("Error in opening file!\n");
+    fputs(InFileName, stderr);
+    perror(" - Error in opening file!\n");
     return -1;
   }
   Len = lseek(FDesc, 0, SEEK_END);
@@ -1399,7 +1382,8 @@ int64_t EncryptFile(const char *InFileName, const char *OutFileName, uint8_t *Ke
   RLen = read(FDesc, Data, Len);
   if (RLen != Len)
   {
-    printf("Error in reading file!\n");
+    fputs(InFileName, stderr);
+    perror(" - Error in reading file! %s\n");
     return -1;
   }
   close(FDesc);
@@ -1416,7 +1400,8 @@ int64_t EncryptFile(const char *InFileName, const char *OutFileName, uint8_t *Ke
 
   if ((FDesc = creat(OutFileName, 700)) == -1)
   {
-    printf("Error in creating output file!\n");
+    fputs(OutFileName, stderr);
+    perror(" - Error in creating output file!\n");
     return -1;
   }
   write(FDesc,Data,Len);
@@ -1424,6 +1409,7 @@ int64_t EncryptFile(const char *InFileName, const char *OutFileName, uint8_t *Ke
   close(FDesc);
   return CheckSum;
 }
+
 int64_t EncryptBMPFile(const char *InFileName, const char *OutFileName, uint8_t *KeyBuf, uint32_t KeyCheckSum)
 { // Encrypts a bmp file for visual attack
   int32_t FDesc;
@@ -1434,20 +1420,23 @@ int64_t EncryptBMPFile(const char *InFileName, const char *OutFileName, uint8_t 
 
   if ((FDesc = open(InFileName, O_RDONLY)) == -1)
   {
-    printf("Error in opening file!\n");
+    fputs(InFileName, stderr);
+    perror(" - Error in opening file!\n");
     return -1;
   }
   Len = lseek(FDesc, 0, SEEK_END);
   if (lseek(FDesc, 0, SEEK_SET) != 0)
   {
-    printf("Error seeking to beginning of file!\n");
+    fputs(InFileName, stderr);
+    perror(" - Error seeking to beginning of file!\n");
     return -1;
   }
   Data = (uint8_t *)malloc(Len);
   RLen = read(FDesc, Data, Len);
   if (RLen != Len)
   {
-    printf("Error in reading file!\n");
+    fputs(InFileName, stderr);
+    perror(" - Error in reading file!\n");
     return -1;
   }
   // Copy original header to a buffer
@@ -1470,14 +1459,16 @@ int64_t EncryptBMPFile(const char *InFileName, const char *OutFileName, uint8_t 
   CheckSum = xorEncrypt(KeyBuf, (uint8_t *)(&SaltData), KeyCheckSum, Len, Data);
   if ((FDesc = creat(OutFileName, 777)) == -1)
   {
-    printf("Error in creating output file!\n");
+    fputs(OutFileName, stderr);
+    perror(" - Error in creating output file!\n");
     return -1;
   }
   // Copy original header to encrypted file in order to see it on a browser
   memcpy(Data, OriginalHeader, 54);
   if (write(FDesc,Data,Len) != Len)
   {
-    printf("Error writing file!\n");
+    fputs(OutFileName, stderr);
+    perror(" - Error writing file!\n");
     return -1;
   }
   free(Data);
@@ -1485,15 +1476,13 @@ int64_t EncryptBMPFile(const char *InFileName, const char *OutFileName, uint8_t 
   return CheckSum;
 }
 
-/* =============== Start of visualization test code ==================*/
-
 #ifndef IMAGE_SRC
-#  define IMAGE_SRC /home/ikizir/Downloads
+#  define IMAGE_SRC "/home/ikizir/Downloads"
 #endif
 
-
-#define SAMPLE_FILE_PATH "IMAGE_SRC/panda.bmp"
-  #define SAMPLE_OUT_FILE_PATH "IMAGE_SRC/panda_enc.bmp"
+#define p(a,b) (a b)
+#define SAMPLE_FILE_PATH p(IMAGE_SRC,"/panda.bmp")
+  #define SAMPLE_OUT_FILE_PATH p(IMAGE_SRC,"/panda_enc.bmp")
 
 void TestEncryptFile(unsigned NumJumps, unsigned BodyLen)
 {
@@ -1511,6 +1500,7 @@ void TestEncryptFile(unsigned NumJumps, unsigned BodyLen)
   xorAnalyzeKey(KeyBuf);
   ChkSum = EncryptFile(SAMPLE_FILE_PATH, SAMPLE_OUT_FILE_PATH, KeyBuf, KeyCheckSum);
   printf("Result: %llu\n", ChkSum);
+  if( ChkSum == -1 ) exit(1);
 }
 
 void TestEncryptBMPFile(const char *InFileName, const char *OutFileName, unsigned NumJumps, unsigned BodyLen)
@@ -1529,65 +1519,72 @@ void TestEncryptBMPFile(const char *InFileName, const char *OutFileName, unsigne
   xorAnalyzeKey(KeyBuf);
   ChkSum = EncryptBMPFile(InFileName, OutFileName, KeyBuf, KeyCheckSum);
   printf("Result: %llu\n", ChkSum);
+  if( ChkSum == -1 ) exit(1);
 }
 
 void CreateVisualProofs()
 {
-  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/panda.bmp"), p(IMAGE_SRC,"/panda_enc_2J_64.bmp"), 2, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/panda.bmp"), p(IMAGE_SRC,"/panda_enc_3J_64.bmp"), 3, 64);
 
-  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/panda.bmp"), p(IMAGE_SRC,"/panda_enc_2J_128.bmp"), 2, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/panda.bmp"), p(IMAGE_SRC,"/panda_enc_3J_128.bmp"), 3, 128);
 
-  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("IMAGE_SRC/panda.bmp", "IMAGE_SRC/panda_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/panda.bmp"), p(IMAGE_SRC,"/panda_enc_2J_256.bmp"), 2, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/panda.bmp"), p(IMAGE_SRC,"/panda_enc_3J_256.bmp"), 3, 256);
 
-  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Bitmap1.bmp"), p(IMAGE_SRC,"/Bitmap1_enc_2J_64.bmp"), 2, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Bitmap1.bmp"), p(IMAGE_SRC,"/Bitmap1_enc_3J_64.bmp"), 3, 64);
 
-  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Bitmap1.bmp"), p(IMAGE_SRC,"/Bitmap1_enc_2J_128.bmp"), 2, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Bitmap1.bmp"), p(IMAGE_SRC,"/Bitmap1_enc_3J_128.bmp"), 3, 128);
 
-  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("IMAGE_SRC/Bitmap1.bmp", "IMAGE_SRC/Bitmap1_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Bitmap1.bmp"), p(IMAGE_SRC,"/Bitmap1_enc_2J_256.bmp"), 2, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Bitmap1.bmp"), p(IMAGE_SRC,"/Bitmap1_enc_3J_256.bmp"), 3, 256);
 
-  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Viking.bmp"), p(IMAGE_SRC,"/Viking_enc_2J_64.bmp"), 2, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Viking.bmp"), p(IMAGE_SRC,"/Viking_enc_3J_64.bmp"), 3, 64);
 
-  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Viking.bmp"), p(IMAGE_SRC,"/Viking_enc_2J_128.bmp"), 2, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Viking.bmp"), p(IMAGE_SRC,"/Viking_enc_3J_128.bmp"), 3, 128);
 
-  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("IMAGE_SRC/Viking.bmp", "IMAGE_SRC/Viking_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Viking.bmp"), p(IMAGE_SRC,"/Viking_enc_2J_256.bmp"), 2, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/Viking.bmp"), p(IMAGE_SRC,"/Viking_enc_3J_256.bmp"), 3, 256);
 
-  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_3J_64.bmp", 3, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/B.bmp"), p(IMAGE_SRC,"/B_enc_2J_64.bmp"), 2, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/B.bmp"), p(IMAGE_SRC,"/B_enc_3J_64.bmp"), 3, 64);
 
-  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_3J_128.bmp", 3, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/B.bmp"), p(IMAGE_SRC,"/B_enc_2J_128.bmp"), 2, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/B.bmp"), p(IMAGE_SRC,"/B_enc_3J_128.bmp"), 3, 128);
 
-  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("IMAGE_SRC/B.bmp", "IMAGE_SRC/B_enc_3J_256.bmp", 3, 256);
-
-
+  TestEncryptBMPFile(p(IMAGE_SRC,"/B.bmp"), p(IMAGE_SRC,"/B_enc_2J_256.bmp"), 2, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/B.bmp"), p(IMAGE_SRC,"/B_enc_3J_256.bmp"), 3, 256);
 
 
-  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_2J_64.bmp", 2, 64);
-  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_3J_64.bmp", 3, 64);
 
-  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_2J_128.bmp", 2, 128);
-  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_3J_128.bmp", 3, 128);
 
-  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_2J_256.bmp", 2, 256);
-  TestEncryptBMPFile("IMAGE_SRC/penguen.bmp", "IMAGE_SRC/penguen_enc_3J_256.bmp", 3, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/penguen.bmp"), p(IMAGE_SRC,"/penguen_enc_2J_64.bmp"), 2, 64);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/penguen.bmp"), p(IMAGE_SRC,"/penguen_enc_3J_64.bmp"), 3, 64);
+
+  TestEncryptBMPFile(p(IMAGE_SRC,"/penguen.bmp"), p(IMAGE_SRC,"/penguen_enc_2J_128.bmp"), 2, 128);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/penguen.bmp"), p(IMAGE_SRC,"/penguen_enc_3J_128.bmp"), 3, 128);
+
+  TestEncryptBMPFile(p(IMAGE_SRC,"/penguen.bmp"), p(IMAGE_SRC,"/penguen_enc_2J_256.bmp"), 2, 256);
+  TestEncryptBMPFile(p(IMAGE_SRC,"/penguen.bmp"), p(IMAGE_SRC,"/penguen_enc_3J_256.bmp"), 3, 256);
 
 }
 
 /* ================= End of visualization test code ==================*/
 
+#endif // NO_VISUAL
+
+#ifndef NO_MAIN
 
 int main()
 {
+
+#ifndef NO_TESTS
+
   uint32_t BodyLen = 128;
 
   //printf("CRC: %u\n", digital_crc32((uint8_t *)"Ismail", 7));
@@ -1600,7 +1597,6 @@ int main()
 
   //CircularShiftTest();
   //uint32_t TestSampleLength = 8192;
-  uint32_t NumIterations = 1000000;
   //D1();
   Test1(2, BodyLen);
   Test1(3, BodyLen);
@@ -1615,6 +1611,11 @@ int main()
   CheckOptimizedVersion(4, BodyLen);
   //CheckOptimizedVersion(5, BodyLen);
 
+#endif // NO_TESTS
+
+#ifndef NO_BENCH
+
+  uint32_t NumIterations = 1000000;
   double Average16M,Average64M,Average256M,Average1024M,Average8192M;
   double Average16H2,Average64H2,Average256H2,Average1024H2,Average8192H2;
   double Average16H3,Average64H3,Average256H3,Average1024H3,Average8192H3;
@@ -1672,5 +1673,10 @@ int main()
          "16                  64                  256                 1024                8192               \n"
          "------------------- ------------------- ------------------- ------------------- -------------------\n"
          "%19.2f %19.2f %19.2f %19.2f %19.2f\n\n", Average16H4, Average64H4, Average256H4, Average1024H4, Average8192H4);
+
+#endif // NO_BENCH
+
   return 0;
 }
+
+#endif // NO_MAIN
